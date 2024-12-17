@@ -24,27 +24,40 @@ const io = new Server(server, {
 
 const userSocketMap = new Map();
 
+
+io.use((socket, next) => {
+  const token = socket.handshake.query.token;
+  if (!token) {
+    return next(new Error("Authentication error"));
+  }
+
+  jwt.verify(token, secretKey, (err, decoded) => {
+    if (err) {
+      return next(new Error("Authentication error"));
+    }
+    socket.user = decoded;
+    next();
+  });
+});
+
 io.on("connection", (socket) => {
   console.log(socket.id);
   console.log(userSocketMap);
   console.log("a user connected");
 
-  socket.on("authenticate", async (userId) => {
-    if (userId) {
-      let sockets = userSocketMap.get(userId) || new Set();
-      sockets.add(socket.id);
-      userSocketMap.set(userId, sockets);
+  const userId = socket.user.sub;
 
-      socket.emit("authenticated", {
-        msg: `Authenticated with user ID: ${userId}`,
-        userId,
-      });
+  let sockets = userSocketMap.get(userId) || new Set();
+  sockets.add(socket.id);
+  userSocketMap.set(userId, sockets);
 
-      socket.broadcast.emit("joincontest", {
-        uid: userId,
-      });
-    }
+  socket.broadcast.emit("joincontest", {
+    uid: userId,
   });
+
+  socket.on("leaderboard", (data) => {
+    socket.broadcast.emit(data) 
+  })
 
   socket.on("disconnect", () => {
     const userId = Array.from(userSocketMap.entries()).find(([key, value]) =>
