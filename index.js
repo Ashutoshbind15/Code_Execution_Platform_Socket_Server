@@ -8,7 +8,7 @@ import cors from "cors";
 app.use(
   cors({
     origin: "*",
-  })
+  }),
 );
 
 import http from "http";
@@ -23,7 +23,6 @@ const io = new Server(server, {
 });
 
 const userSocketMap = new Map();
-
 
 io.use((socket, next) => {
   const token = socket.handshake.query.token;
@@ -56,12 +55,12 @@ io.on("connection", (socket) => {
   });
 
   socket.on("leaderboard", (data) => {
-    socket.broadcast.emit(data) 
-  })
+    socket.broadcast.emit(data);
+  });
 
   socket.on("disconnect", () => {
     const userId = Array.from(userSocketMap.entries()).find(([key, value]) =>
-      value.has(socket.id)
+      value.has(socket.id),
     )?.[0];
     userSocketMap.forEach((sockets, userId) => {
       if (sockets.has(socket.id)) {
